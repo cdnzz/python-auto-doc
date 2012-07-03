@@ -13,7 +13,7 @@ Python Sphinx document auto generator
 </pre>
 
 
-**__init__.py must contains some property, For example:**
+**__init__.py at root of src must contains some property, For example:**
 <code><pre>
 __version__ = '0.1'
 __author__ = ['Rebill']

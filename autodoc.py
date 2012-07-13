@@ -209,6 +209,8 @@ class AutoDoc(object):
         rst = {}
         tree = os.walk(SOURCE_DIR)
         for root, subs, files in tree:
+            if '__init__.py' not in files:
+                continue
             sub_modules = self.find_module(files)
             if root == SOURCE_DIR:
                 # 根模块处理
@@ -220,8 +222,40 @@ class AutoDoc(object):
                 package_name = root.replace('%s/' % SOURCE_DIR, '')\
                                    .replace('/', '.')
                 modules.add(package_name)
+                rst[package_name] = []
                 for sub_module in sub_modules:
-                    rst[package_name] = sub_module
+                    rst[package_name].append(sub_module)
+
+        # 生成子模块rst文件
+        for pkg in rst:
+            # 删除空模块
+            if not rst[pkg] and isinstance(rst[pkg], list):
+                modules.remove(pkg)
+                continue
+
+            mods = []
+            if rst[pkg]:
+                heading = '`%s` Package' % pkg
+                for v in rst[pkg]:
+                    mods.append(v)
+            else:
+                heading = '`%s` Module' % pkg
+                mods.append(None)
+
+            contents = list()
+            contents.append(self.format_heading(1, heading))
+            for mod in mods:
+                mod_head = mod
+                if not mod:
+                    mod_head = pkg
+                contents.append(self.format_heading(2, ':mod:`%s` Module' % mod_head))
+                contents.append(self.format_directive(mod, '%s.%s' % (SOURCE_DIR, pkg)))
+                contents.append('\n')
+            rst_file = '%s/%s.rst' % (self.version_path, pkg)
+            with open(rst_file, 'w') as f:
+                for content in contents:
+                    f.write(content)
+
         # 重新排序，令显示更优雅
         modules = list(modules)
         modules.sort()
@@ -232,26 +266,6 @@ class AutoDoc(object):
             for module in modules:
                 contents = '   %s\n' % module
                 f.write(contents)
-        # 生成子模块rst文件
-        for k in rst:
-            if rst[k]:
-                # is package
-                heading = '`%s` Package' % k
-                mod = ':mod:`%s` Module' % rst[k]
-            else:
-                # is module
-                heading = '`%s` Module' % k
-                mod = ':mod:`%s` Module' % k
-
-            contents = list()
-            contents.append(self.format_heading(1, heading))
-            contents.append(self.format_heading(2, mod))
-            contents.append(self.format_directive(rst[k], '%s.%s' % (SOURCE_DIR, k)))
-
-            rst_file = '%s/%s.rst' % (self.version_path, k)
-            with open(rst_file, 'w') as f:
-                for content in contents:
-                    f.write(content)
 
     def clone_themes(self):
         """
